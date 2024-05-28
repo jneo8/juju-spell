@@ -26,7 +26,9 @@ to quickly create a Cobra application.`,
 	RunE: run,
 }
 
-func init() {}
+func init() {
+	rootCmd.AddCommand(jujudryCmd)
+}
 
 func Execute() error {
 	return rootCmd.Execute()

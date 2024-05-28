@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/jneo8/juju-man/cmd"
+	"github.com/jneo8/juju-spell/cmd"
 )
 
 func main() {
