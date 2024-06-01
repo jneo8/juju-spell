@@ -5,10 +5,9 @@ package app
 
 import (
 	"github.com/google/wire"
-	"github.com/rivo/tview"
 )
 
 func InitializeRootApp() (ExecuteAble, error) {
-	wire.Build(NewApp, NewLogger, NewViper, tview.NewApplication)
+	wire.Build(NewApp, NewLogger, NewViper)
 	return &App{}, nil
 }

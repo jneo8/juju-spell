@@ -6,16 +6,11 @@
 
 package app
 
-import (
-	"github.com/rivo/tview"
-)
-
 // Injectors from wire.go:
 
 func InitializeRootApp() (ExecuteAble, error) {
 	logrusLogger := NewLogger()
 	viper := NewViper()
-	application := tview.NewApplication()
-	executeAble := NewApp(logrusLogger, viper, application)
+	executeAble := NewApp(logrusLogger, viper)
 	return executeAble, nil
 }
