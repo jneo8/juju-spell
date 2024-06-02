@@ -9,6 +9,14 @@ import (
 	"github.com/rivo/tview"
 )
 
+const logo = `
+    _       _                       _ _ 
+   (_)_  _ (_)_  _ ___ ____ __  ___| | |
+   | | || || | || |___(_-< '_ \/ -_) | |
+  _/ |\_,_|/ |\_,_|   /__/ .__/\___|_|_|
+ |__/    |__/            |_|            
+`
+
 func getTheme() tview.Theme {
 	return tview.Theme{
 		PrimitiveBackgroundColor:    tcell.Color16,
@@ -38,21 +46,43 @@ func NewApplication() *tview.Application {
 type Service struct {
 	Application *tview.Application
 	RootFlex    *tview.Flex
-	HeaderBox   *tview.Box
-	ContentBox  *tview.Box
-	Footer      *tview.Flex
+	HeaderFlex  *tview.Flex
+	ContentFlex *tview.Flex
+	FooterFlex  *tview.Flex
 	LogTextView *tview.TextView
 }
 
 func GetService() ViewService {
 	tview.Styles = getTheme()
 	app := tview.NewApplication()
-	rootFlex := tview.NewFlex().SetDirection(tview.FlexRow)
-	headerBox := tview.NewBox().SetBorder(true).SetTitle("Controller info in header")
-	contentBox := tview.NewBox().SetBorder(true).SetTitle("Controller info in header")
 
-	footer := tview.NewFlex()
-	footer.SetBorder(true)
+	// HeaderFlex
+	headerFlex := tview.NewFlex()
+	logoTextView := tview.NewTextView()
+	logoTextView.SetText(logo)
+
+	headerList := tview.NewList()
+	headerList.AddItem("Controllers", "", 'c', nil)
+	headerList.AddItem("Models", "", 'm', nil)
+	headerList.AddItem("Units", "", 'u', nil)
+	headerList.AddItem("Integrations", "", 'i', nil)
+
+	headerFlex.
+		AddItem(headerList, 0, 70, false).
+		AddItem(logoTextView, 40, 30, false)
+	// End HeaderFlex
+
+	// Content
+	contentFlex := tview.NewFlex()
+	contentFlex.SetBorder(true).SetTitle("Controller info in header")
+	DataTable := tview.NewTable()
+	contentFlex.AddItem(DataTable, 0, 100, false)
+	// End Content
+
+	// Footer
+	footerFlex := tview.NewFlex()
+	footerFlex.SetBorder(true)
+	footerFlex.SetTitle("Log message")
 
 	logTextView := tview.
 		NewTextView().
@@ -61,17 +91,23 @@ func GetService() ViewService {
 		SetChangedFunc(func() { app.Draw() }).
 		SetDynamicColors(true)
 
-	footer.AddItem(logTextView, 0, 1, true)
+	footerFlex.AddItem(logTextView, 0, 1, true)
+	// End Footer
+
+	// Root
+	rootFlex := tview.NewFlex().SetDirection(tview.FlexRow)
 	rootFlex.
-		AddItem(headerBox, 0, 15, true).
-		AddItem(contentBox, 0, 80, true).
-		AddItem(footer, 0, 5, true)
+		AddItem(headerFlex, 0, 15, true).
+		AddItem(contentFlex, 0, 80, true).
+		AddItem(footerFlex, 0, 5, true)
+	// End Root
+
 	service := Service{
 		Application: app,
 		RootFlex:    rootFlex,
-		HeaderBox:   headerBox,
-		ContentBox:  contentBox,
-		Footer:      footer,
+		HeaderFlex:  headerFlex,
+		ContentFlex: contentFlex,
+		FooterFlex:  footerFlex,
 		LogTextView: logTextView,
 	}
 	return &service
