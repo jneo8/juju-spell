@@ -10,6 +10,8 @@ import (
 
 func init() {
 	rootCmd.PersistentFlags().String("config", "", "config file (default is $HOME/.cobra.yaml)")
+	rootCmd.PersistentFlags().String("log_level", "debug", "Logger level")
+	rootCmd.PersistentFlags().String("log_file", "./juju-spell.log", "Log file path")
 }
 
 var rootCmd = &cobra.Command{
@@ -21,7 +23,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if err := app.BindFlags(cmd); err != nil {
+		if err := app.Setup(cmd); err != nil {
 			return err
 		}
 		return app.Execute()

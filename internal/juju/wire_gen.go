@@ -4,7 +4,7 @@
 //go:build !wireinject
 // +build !wireinject
 
-package cmd
+package juju
 
 import (
 	"github.com/jneo8/juju-spell/internal/common"
@@ -12,8 +12,15 @@ import (
 
 // Injectors from wire.go:
 
-func InitializeExecute() func() {
+func InitializeJujuClient() (JujuClient, error) {
+	jujuContent, err := GetJujuContent()
+	if err != nil {
+		return nil, err
+	}
 	logger := common.NewLogger()
-	v := GetExecute(logger)
-	return v
+	jujuJujuClient, err := NewJujuClient(jujuContent, logger)
+	if err != nil {
+		return nil, err
+	}
+	return jujuJujuClient, nil
 }

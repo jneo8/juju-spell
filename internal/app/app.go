@@ -3,9 +3,12 @@ package app
 import (
 	"context"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
+	"github.com/jneo8/juju-spell/internal/common"
+	"github.com/jneo8/juju-spell/internal/juju"
 	"github.com/jneo8/juju-spell/internal/tview"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -14,30 +17,53 @@ import (
 
 type ExecuteAble interface {
 	Execute() error
-	BindFlags(cmd *cobra.Command) error
+	Setup(cmd *cobra.Command) error
 }
 
 type App struct {
-	logger *logrus.Logger
-	config *viper.Viper
+	logger     *logrus.Logger
+	config     *viper.Viper
+	jujuClient juju.JujuClient
+	logFile    *os.File
 }
 
-func (app *App) BindFlags(cmd *cobra.Command) error {
+func (app *App) Setup(cmd *cobra.Command) error {
 	app.config.BindPFlags(cmd.Flags())
-	app.logger.Info(config.AllSettings())
+
+	// Create log file
+	if app.config.GetString("log_file") != "" {
+		logFile, err := os.OpenFile(
+			app.config.GetString("log_file"),
+			os.O_CREATE|os.O_WRONLY|os.O_APPEND,
+			0666,
+		)
+		if err != nil {
+			return err
+		}
+		app.logFile = logFile
+	}
+	common.SetupLogger(app.logger, app.config, app.logFile)
+	app.logger.Info(app.config.AllSettings())
 	return nil
 }
 
-func NewApp(logger *logrus.Logger, config *viper.Viper) ExecuteAble {
-	logger.Info("NewApp")
+func (app *App) Close() error {
+	if app.logFile != nil {
+		defer app.logFile.Close()
+	}
+	return nil
+}
+
+func NewApp(logger *logrus.Logger, config *viper.Viper, jujuClient juju.JujuClient) ExecuteAble {
 	return &App{
-		logger: logger,
-		config: config,
+		logger:     logger,
+		config:     config,
+		jujuClient: jujuClient,
 	}
 }
 
 func (app *App) Execute() error {
-	app.logger.Info("Execute")
+	app.logger.Debug("Execute")
 	var wg sync.WaitGroup
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -60,7 +86,7 @@ func (app *App) Execute() error {
 		app.logger.Error(err)
 		cancel()
 	case <-ctx.Done():
-		logger.Info("Done")
+		app.logger.Info("Done")
 	}
 	return nil
 }

@@ -3,6 +3,7 @@
 wire:  ## Run wire for all packages
 	wire ./internal/app
 	wire ./internal/cmd
+	wire ./internal/juju
 
 run: wire  ## Run main
 	go run ./main.go
