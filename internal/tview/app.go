@@ -3,10 +3,13 @@ package tview
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/jneo8/juju-spell/internal/juju"
 	"github.com/rivo/tview"
+	"github.com/sirupsen/logrus"
 )
 
 const logo = `
@@ -44,15 +47,19 @@ func NewApplication() *tview.Application {
 }
 
 type Service struct {
-	Application *tview.Application
-	RootFlex    *tview.Flex
-	HeaderFlex  *tview.Flex
-	ContentFlex *tview.Flex
-	FooterFlex  *tview.Flex
-	LogTextView *tview.TextView
+	Application      *tview.Application
+	RootFlex         *tview.Flex
+	HeaderFlex       *tview.Flex
+	HeaderList       *tview.List
+	ContentFlex      *tview.Flex
+	FooterFlex       *tview.Flex
+	LogTextView      *tview.TextView
+	ContentDataTable *tview.Table
+	jujuClient       juju.JujuClient
+	logger           *logrus.Logger
 }
 
-func GetService() ViewService {
+func GetService(logger *logrus.Logger, jujuclient juju.JujuClient) ViewService {
 	tview.Styles = getTheme()
 	app := tview.NewApplication()
 
@@ -62,10 +69,6 @@ func GetService() ViewService {
 	logoTextView.SetText(logo)
 
 	headerList := tview.NewList()
-	headerList.AddItem("Controllers", "", 'c', nil)
-	headerList.AddItem("Models", "", 'm', nil)
-	headerList.AddItem("Units", "", 'u', nil)
-	headerList.AddItem("Integrations", "", 'i', nil)
 
 	headerFlex.
 		AddItem(headerList, 0, 70, false).
@@ -75,8 +78,8 @@ func GetService() ViewService {
 	// Content
 	contentFlex := tview.NewFlex()
 	contentFlex.SetBorder(true).SetTitle("Controller info in header")
-	DataTable := tview.NewTable()
-	contentFlex.AddItem(DataTable, 0, 100, false)
+	dataTable := tview.NewTable()
+	contentFlex.AddItem(dataTable, 0, 100, false)
 	// End Content
 
 	// Footer
@@ -103,21 +106,58 @@ func GetService() ViewService {
 	// End Root
 
 	service := Service{
-		Application: app,
-		RootFlex:    rootFlex,
-		HeaderFlex:  headerFlex,
-		ContentFlex: contentFlex,
-		FooterFlex:  footerFlex,
-		LogTextView: logTextView,
+		logger:           logger,
+		jujuClient:       jujuclient,
+		Application:      app,
+		RootFlex:         rootFlex,
+		HeaderFlex:       headerFlex,
+		HeaderList:       headerList,
+		ContentFlex:      contentFlex,
+		FooterFlex:       footerFlex,
+		LogTextView:      logTextView,
+		ContentDataTable: dataTable,
 	}
+	service.setUpHeaderItem()
 	return &service
+}
+
+func (s *Service) setUpHeaderItem() {
+	s.HeaderList.AddItem("Controllers", "", 'c', s.SwitchToControllerTable)
+	s.HeaderList.AddItem("Models", "", 'm', nil)
+	s.HeaderList.AddItem("Units", "", 'u', nil)
+	s.HeaderList.AddItem("Integrations", "", 'i', nil)
+}
+
+func (s *Service) SwitchToControllerTable() {
+	s.logger.Info("Get controller")
+	controllers := s.jujuClient.GetControllers()
+	for idx, colume := range []string{"Controller", "Model", "User", "Access", "Cloud/Region", "Models", "Nodes", "HA", "Version"} {
+		color := tcell.ColorYellow
+		align := tview.AlignCenter
+		tableCell := tview.NewTableCell(colume).SetAlign(align).SetTextColor(color).SetSelectable(false)
+		s.ContentDataTable.SetCell(0, idx, tableCell)
+	}
+	for ctrlName, ctrl := range controllers.Controllers {
+		color := tcell.ColorWhite
+		align := tview.AlignRight
+		controllerCell := tview.NewTableCell(ctrlName).SetAlign(align).SetTextColor(color).SetSelectable(false)
+		cloudRegionCell := tview.NewTableCell(fmt.Sprintf("%s/%s", ctrl.Cloud, ctrl.CloudRegion)).SetAlign(align).SetTextColor(color).SetSelectable(false)
+		nodesCell := tview.NewTableCell(strconv.Itoa(*ctrl.MachineCount)).SetAlign(align).SetTextColor(color).SetSelectable(false)
+		versionCell := tview.NewTableCell(ctrl.AgentVersion).SetAlign(align).SetTextColor(color).SetSelectable(false)
+		s.ContentDataTable.SetCell(1, 0, controllerCell)
+		s.ContentDataTable.SetCell(1, 1, controllerCell)
+		s.ContentDataTable.SetCell(1, 4, cloudRegionCell)
+		s.ContentDataTable.SetCell(1, 6, nodesCell)
+		s.ContentDataTable.SetCell(1, 8, versionCell)
+		s.logger.Debugf("%s %#v", ctrlName, ctrl)
+	}
 }
 
 func (s *Service) Run(ctx context.Context, wg *sync.WaitGroup, errChan chan<- error) {
 	defer wg.Done()
 
 	go func() {
-		if err := s.Application.SetRoot(s.RootFlex, true).EnableMouse(true).EnablePaste(true).Run(); err != nil {
+		if err := s.Application.SetRoot(s.RootFlex, true).EnableMouse(true).EnablePaste(true).SetFocus(s.HeaderList).Run(); err != nil {
 			errChan <- err
 		} else {
 			errChan <- nil

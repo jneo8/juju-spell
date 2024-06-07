@@ -18,6 +18,7 @@ import (
 type ExecuteAble interface {
 	Execute() error
 	Setup(cmd *cobra.Command) error
+	Close() error
 }
 
 type App struct {
@@ -72,7 +73,7 @@ func (app *App) Execute() error {
 	wg.Add(2)
 	errChan := make(chan error, 2)
 
-	tviewService := tview.GetService()
+	tviewService := tview.GetService(app.logger, app.jujuClient)
 	go tviewService.Run(ctx, &wg, errChan)
 	go RunDummyService(ctx, &wg, errChan, tviewService)
 

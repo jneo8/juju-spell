@@ -23,6 +23,7 @@ var rootCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		defer app.Close()
 		if err := app.Setup(cmd); err != nil {
 			return err
 		}
