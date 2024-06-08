@@ -8,17 +8,15 @@ package juju
 
 import (
 	"github.com/jneo8/juju-spell/internal/common"
+	"github.com/juju/juju/jujuclient"
 )
 
 // Injectors from wire.go:
 
 func InitializeJujuClient() (JujuClient, error) {
-	jujuContent, err := GetJujuContent()
-	if err != nil {
-		return nil, err
-	}
+	clientStore := jujuclient.NewFileClientStore()
 	logger := common.NewLogger()
-	jujuJujuClient, err := NewJujuClient(jujuContent, logger)
+	jujuJujuClient, err := NewJujuClient(clientStore, logger)
 	if err != nil {
 		return nil, err
 	}

@@ -3,7 +3,6 @@ package tview
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
@@ -94,15 +93,15 @@ func GetService(logger *logrus.Logger, jujuclient juju.JujuClient) ViewService {
 		SetChangedFunc(func() { app.Draw() }).
 		SetDynamicColors(true)
 
-	footerFlex.AddItem(logTextView, 0, 1, true)
+	footerFlex.AddItem(logTextView, 0, 1, false)
 	// End Footer
 
 	// Root
 	rootFlex := tview.NewFlex().SetDirection(tview.FlexRow)
 	rootFlex.
-		AddItem(headerFlex, 0, 15, true).
-		AddItem(contentFlex, 0, 80, true).
-		AddItem(footerFlex, 0, 5, true)
+		AddItem(headerFlex, 0, 15, false).
+		AddItem(contentFlex, 0, 80, false).
+		AddItem(footerFlex, 0, 5, false)
 	// End Root
 
 	service := Service{
@@ -130,27 +129,48 @@ func (s *Service) setUpHeaderItem() {
 
 func (s *Service) SwitchToControllerTable() {
 	s.logger.Info("Get controller")
-	controllers := s.jujuClient.GetControllers()
-	for idx, colume := range []string{"Controller", "Model", "User", "Access", "Cloud/Region", "Models", "Nodes", "HA", "Version"} {
-		color := tcell.ColorYellow
-		align := tview.AlignCenter
-		tableCell := tview.NewTableCell(colume).SetAlign(align).SetTextColor(color).SetSelectable(false)
-		s.ContentDataTable.SetCell(0, idx, tableCell)
+	controllerData, err := s.jujuClient.GetControllerData()
+
+	for _, ctrl := range controllerData.ControllerItems {
+		s.logger.Debug(*ctrl.MachineCount)
 	}
-	for ctrlName, ctrl := range controllers.Controllers {
-		color := tcell.ColorWhite
-		align := tview.AlignRight
-		controllerCell := tview.NewTableCell(ctrlName).SetAlign(align).SetTextColor(color).SetSelectable(false)
-		cloudRegionCell := tview.NewTableCell(fmt.Sprintf("%s/%s", ctrl.Cloud, ctrl.CloudRegion)).SetAlign(align).SetTextColor(color).SetSelectable(false)
-		nodesCell := tview.NewTableCell(strconv.Itoa(*ctrl.MachineCount)).SetAlign(align).SetTextColor(color).SetSelectable(false)
-		versionCell := tview.NewTableCell(ctrl.AgentVersion).SetAlign(align).SetTextColor(color).SetSelectable(false)
-		s.ContentDataTable.SetCell(1, 0, controllerCell)
-		s.ContentDataTable.SetCell(1, 1, controllerCell)
-		s.ContentDataTable.SetCell(1, 4, cloudRegionCell)
-		s.ContentDataTable.SetCell(1, 6, nodesCell)
-		s.ContentDataTable.SetCell(1, 8, versionCell)
-		s.logger.Debugf("%s %#v", ctrlName, ctrl)
+	if err != nil {
+		s.logger.Error(err)
+		s.Error(fmt.Sprint(err))
+		return
 	}
+	data := controllerData.GetControllerTableData()
+	if len(data) <= 0 {
+		return
+	}
+	s.logger.Debug(data)
+	center := len(data[0]) / 2
+	for row, line := range controllerData.GetControllerTableData() {
+		for column, cell := range line {
+			color := tcell.ColorWhite
+			align := tview.AlignLeft
+			selectable := true
+			if row == 0 {
+				color = tcell.ColorYellow
+			} else if column == 0 {
+
+			}
+			if column > center {
+				align = tview.AlignRight
+			} else {
+				align = tview.AlignLeft
+			}
+			tableCell := tview.
+				NewTableCell(cell).
+				SetAlign(align).
+				SetTextColor(color).
+				SetSelectable(selectable).
+				SetExpansion(1)
+			s.ContentDataTable.SetCell(row, column, tableCell)
+		}
+	}
+	s.ContentDataTable.SetSelectable(true, false)
+	s.Application.SetFocus(s.ContentDataTable)
 }
 
 func (s *Service) Run(ctx context.Context, wg *sync.WaitGroup, errChan chan<- error) {
@@ -180,6 +200,14 @@ func (s *Service) Debug(str string) {
 
 func (s *Service) Info(str string) {
 	color := "[blue]"
+	fmt.Fprintf(s.LogTextView, "\n%s%s[-]", color, str)
+	if focus := s.LogTextView.HasFocus(); !focus {
+		s.LogTextView.ScrollToEnd()
+	}
+}
+
+func (s *Service) Error(str string) {
+	color := "[red]"
 	fmt.Fprintf(s.LogTextView, "\n%s%s[-]", color, str)
 	if focus := s.LogTextView.HasFocus(); !focus {
 		s.LogTextView.ScrollToEnd()
