@@ -8,8 +8,9 @@ import (
 )
 
 type ControllerData struct {
-	ControllerItems map[string]jujucontroller.ControllerItem
-	errors          []error
+	ControllerItems   map[string]jujucontroller.ControllerItem
+	Errors            []error
+	CurrentController string
 }
 
 func (c *ControllerData) GetControllerTableData() [][]string {
@@ -24,9 +25,13 @@ func (c *ControllerData) GetControllerTableData() [][]string {
 		if ctrl.ControllerMachines != nil && ctrl.ControllerMachines.Total > 1 {
 			ha = "yes"
 		}
+		modelName := ctrl.ModelName
+		if modelName == "" {
+			modelName = "-"
+		}
 		data = append(data, []string{
 			ctrlName,
-			ctrl.ModelName,
+			modelName,
 			ctrl.User,
 			ctrl.Access,
 			fmt.Sprintf("%s/%s", ctrl.Cloud, ctrl.CloudRegion),

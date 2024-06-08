@@ -33,14 +33,24 @@ func NewJujuClient(clientStore jujuclient.ClientStore, logger *logrus.Logger) (J
 }
 
 func (jc *jujuClient) GetControllerData() (ControllerData, error) {
-	data := ControllerData{errors: []error{}}
+	data := ControllerData{Errors: []error{}}
 	if allControllers, err := jc.clientStore.AllControllers(); err != nil {
-		return ControllerData{}, err
+		return data, err
 	} else {
 		jc.logger.Debug("Run AllControllers success")
 		controllerItems, errs := jc.convertControllerDetails(allControllers)
 		data.ControllerItems = controllerItems
-		data.errors = append(data.errors, errs...)
+		data.Errors = append(data.Errors, errs...)
+	}
+	if currentController, err := jc.clientStore.CurrentController(); err != nil {
+		if errors.IsNotFound(err) {
+			jc.logger.Debug("Current controller not found")
+		} else {
+			jc.logger.Error(err)
+			data.Errors = append(data.Errors, err)
+		}
+	} else {
+		data.CurrentController = currentController
 	}
 	return data, nil
 }
