@@ -19,10 +19,15 @@ const logo = `
  |__/    |__/            |_|            
 `
 
-type ViewService interface {
-	Run(ctx context.Context, wg *sync.WaitGroup, errChan chan<- error)
+type LogService interface {
 	Info(string)
 	Debug(string)
+	Error(string)
+}
+
+type ViewService interface {
+	LogService
+	Run(ctx context.Context, wg *sync.WaitGroup, errChan chan<- error)
 }
 
 func NewApplication() *tview.Application {
@@ -116,8 +121,15 @@ func GetService(logger *logrus.Logger, jujuclient juju.JujuClient) ViewService {
 	service.setUpHeaderList()
 	service.setUpPromptTextView()
 	service.setUpBasicInputCapture()
+	service.setUpContentDataTableInputCapture()
 
 	return &service
+}
+
+func (s *Service) setUpContentDataTableInputCapture() {
+	s.ContentDataTable.SetSelectedFunc(
+		s.ContentDataTableSelectedFunc,
+	)
 }
 
 func (s *Service) setUpBasicInputCapture() {
@@ -150,64 +162,6 @@ func (s *Service) setUpPromptTextView() {
 	fmt.Fprintf(s.PromptTextView, "%s<h>[-] Switch to header\n", color)
 	fmt.Fprintf(s.PromptTextView, "%s<d>[-] Switch to data table\n", color)
 	fmt.Fprintf(s.PromptTextView, "%s<l>[-] Switch to log\n", color)
-}
-
-func (s *Service) SwitchToControllerTable() {
-	s.logger.Info("Get controller")
-	controllerData, err := s.jujuClient.GetControllerData()
-
-	if err != nil {
-		s.logger.Error(err)
-		s.Error(fmt.Sprint(err))
-		return
-	}
-	for _, err := range controllerData.Errors {
-		s.Error(err.Error())
-	}
-	data := controllerData.GetControllerTableData()
-	if len(data) <= 0 {
-		return
-	}
-	center := len(data[0]) / 2
-	for row, line := range controllerData.GetControllerTableData() {
-		for column, cell := range line {
-			currentController := false
-			if cell == controllerData.CurrentController {
-				currentController = true
-			}
-			color := DataColor
-			align := tview.AlignLeft
-			selectable := true
-			if row == 0 {
-				color = ColumnColor
-				selectable = false
-			}
-			if column > center {
-				align = tview.AlignRight
-			} else {
-				align = tview.AlignLeft
-			}
-
-			ctrlName := cell
-			if currentController {
-				ctrlName = "*" + ctrlName
-				color = CurrentControllerColor
-			}
-			tableCell := tview.
-				NewTableCell(ctrlName).
-				SetAlign(align).
-				SetTextColor(color).
-				SetSelectable(selectable).
-				SetExpansion(1)
-			s.ContentDataTable.SetCell(row, column, tableCell)
-			if currentController {
-				s.ContentDataTable.Select(row, column)
-			}
-		}
-	}
-	s.ContentDataTable.SetSelectable(true, false)
-	s.Application.SetFocus(s.ContentDataTable)
-	s.ContentFlex.SetTitle("Controllers")
 }
 
 func (s *Service) Run(ctx context.Context, wg *sync.WaitGroup, errChan chan<- error) {
@@ -248,5 +202,16 @@ func (s *Service) Error(str string) {
 	fmt.Fprintf(s.LogTextView, "\n%s%s[-]", color, str)
 	if focus := s.LogTextView.HasFocus(); !focus {
 		s.LogTextView.ScrollToEnd()
+	}
+}
+
+func (s *Service) ContentDataTableSelectedFunc(row int, column int) {
+	s.logger.Debug(row, column)
+	title := s.ContentFlex.GetTitle()
+	switch title {
+	case "Controllers":
+		cell := s.ContentDataTable.GetCell(row, column)
+		s.SwitchToModelTable(cell.Text)
+	default:
 	}
 }
