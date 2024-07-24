@@ -4,8 +4,41 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jneo8/juju-spell/utils"
+	"github.com/juju/juju/jujuclient"
+	"github.com/juju/names/v5"
 	"github.com/rivo/tview"
 )
+
+func (s *Service) ContentDataTableSelectedFunc(row int, column int) {
+	s.logger.Debug(row, column)
+	title := s.ContentFlex.GetTitle()
+	switch {
+	case title == "Controllers":
+		cell := s.ContentDataTable.GetCell(row, column)
+		controllerName := utils.RemoveWildcards(cell.Text)
+		if err := s.jujuClient.SetCurrentController(controllerName); err != nil {
+			s.Error(err)
+			return
+		}
+		s.SwitchToModelTable(cell.Text)
+	case strings.HasPrefix(title, "Models"):
+		model := utils.RemoveWildcards(s.ContentDataTable.GetCell(row, column).Text)
+		currentController, err := s.jujuClient.CurrentController()
+		if err != nil {
+			s.Error(err)
+			return
+		}
+		// modelName = {owner}/{model}
+		modelName := jujuclient.JoinOwnerModelName(names.NewUserTag(s.ContentDataTable.GetCell(row, 6).Text), model)
+		if err := s.jujuClient.SetCurrentModel(currentController, modelName); err != nil {
+			s.Error(err)
+			return
+		}
+		s.SwitchToUnitTable(currentController, modelName)
+	default:
+	}
+}
 
 func (s *Service) drawContentTable(current, title string, data [][]string) {
 	s.ContentDataTable.Clear()
@@ -55,12 +88,30 @@ func (s *Service) drawContentTable(current, title string, data [][]string) {
 	}
 }
 
-func (s *Service) SwitchToModelTable(controllerName string) {
+func (s *Service) SwitchToControllerTable() {
 	s.ContentDataTable.Clear()
-	controllerName = strings.ReplaceAll(controllerName, "*", "")
+	controllerData, err := s.jujuClient.GetControllerData()
+
+	if err != nil {
+		s.Error(err)
+		return
+	}
+	for _, err := range controllerData.Errors {
+		s.Error(err)
+	}
+	data := controllerData.GetControllerTableData()
+	s.drawContentTable(controllerData.CurrentController, "Controllers", data)
+}
+
+func (s *Service) SwitchToModelTable(controllerName string) {
+	controllerName = utils.RemoveWildcards(controllerName)
+	s.logger.Debugf("Switch to %s controller", controllerName)
+
+	s.ContentDataTable.Clear()
 	modelData, err := s.jujuClient.GetModelData(controllerName)
 	if err != nil {
-		s.logger.Error(err)
+		s.Error(err)
+		return
 	}
 
 	data := modelData.GetModelTableData()
@@ -71,18 +122,14 @@ func (s *Service) SwitchToModelTable(controllerName string) {
 	s.drawContentTable(currentModelName, fmt.Sprintf("Models(%s)", controllerName), data)
 }
 
-func (s *Service) SwitchToControllerTable() {
-	s.logger.Info("Get controller")
-	controllerData, err := s.jujuClient.GetControllerData()
+func (s *Service) SwitchToUnitTable(controllerName, modelName string) {
 
+	s.logger.Debugf("Switch to %s model", modelName)
+
+	unitData, err := s.jujuClient.GetUnitData(modelName)
 	if err != nil {
-		s.logger.Error(err)
-		s.Error(fmt.Sprint(err))
+		s.Error(err)
 		return
 	}
-	for _, err := range controllerData.Errors {
-		s.Error(err.Error())
-	}
-	data := controllerData.GetControllerTableData()
-	s.drawContentTable(controllerData.CurrentController, "Controllers", data)
+	s.logger.Debug(unitData)
 }

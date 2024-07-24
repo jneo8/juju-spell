@@ -22,7 +22,7 @@ const logo = `
 type LogService interface {
 	Info(string)
 	Debug(string)
-	Error(string)
+	Error(error)
 }
 
 type ViewService interface {
@@ -197,21 +197,12 @@ func (s *Service) Info(str string) {
 	}
 }
 
-func (s *Service) Error(str string) {
+func (s *Service) Error(err error) {
+	s.logger.Error(err)
+	str := err.Error()
 	color := "[red]"
 	fmt.Fprintf(s.LogTextView, "\n%s%s[-]", color, str)
 	if focus := s.LogTextView.HasFocus(); !focus {
 		s.LogTextView.ScrollToEnd()
-	}
-}
-
-func (s *Service) ContentDataTableSelectedFunc(row int, column int) {
-	s.logger.Debug(row, column)
-	title := s.ContentFlex.GetTitle()
-	switch title {
-	case "Controllers":
-		cell := s.ContentDataTable.GetCell(row, column)
-		s.SwitchToModelTable(cell.Text)
-	default:
 	}
 }

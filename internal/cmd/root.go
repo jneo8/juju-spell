@@ -12,6 +12,7 @@ func init() {
 	rootCmd.PersistentFlags().String("config", "", "config file (default is $HOME/.cobra.yaml)")
 	rootCmd.PersistentFlags().String("log_level", "debug", "Logger level")
 	rootCmd.PersistentFlags().String("log_file", "./juju-spell.log", "Log file path")
+	rootCmd.AddCommand(watcherCmd)
 }
 
 var rootCmd = &cobra.Command{
