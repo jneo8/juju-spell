@@ -9,7 +9,7 @@ import (
 	"github.com/juju/juju/jujuclient"
 )
 
-func (jc *jujuClient) GetRootAPI(controllerName string, modelName string) (api.Connection, error) {
+func (jc *jujuClient) GetAPIConnection(controllerName string, modelName string) (api.Connection, error) {
 	accountDetails, err := jc.clientStore.AccountDetails(controllerName)
 	if err != nil {
 		return nil, err
