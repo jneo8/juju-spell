@@ -7,7 +7,7 @@
 package cmd
 
 import (
-	"github.com/jneo8/juju-spell/internal/common"
+	"github.com/jneo8/jujuspell/common"
 )
 
 // Injectors from wire.go:

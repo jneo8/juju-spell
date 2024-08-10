@@ -1,9 +1,9 @@
 ##@ Golang
 
 wire:  ## Run wire for all packages
-	wire ./internal/app
-	wire ./internal/cmd
-	wire ./internal/juju
+	wire ./app
+	wire ./cmd
+	wire ./jujuclient
 
 run: wire  ## Run main
 	go run ./main.go

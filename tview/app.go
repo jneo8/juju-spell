@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/gdamore/tcell/v2"
-	"github.com/jneo8/juju-spell/internal/juju"
+	"github.com/jneo8/jujuspell/jujuclient"
 	"github.com/rivo/tview"
 	"github.com/sirupsen/logrus"
 )
@@ -45,11 +45,11 @@ type Service struct {
 	FooterFlex       *tview.Flex
 	LogTextView      *tview.TextView
 	ContentDataTable *tview.Table
-	jujuClient       juju.JujuClient
+	jujuClient       jujuclient.JujuClient
 	logger           *logrus.Logger
 }
 
-func GetService(logger *logrus.Logger, jujuclient juju.JujuClient) ViewService {
+func GetService(logger *logrus.Logger, jujuclient jujuclient.JujuClient) ViewService {
 	tview.Styles = getTheme()
 	app := tview.NewApplication()
 

@@ -7,8 +7,8 @@
 package app
 
 import (
-	"github.com/jneo8/juju-spell/internal/common"
-	"github.com/jneo8/juju-spell/internal/juju"
+	"github.com/jneo8/jujuspell/common"
+	"github.com/jneo8/jujuspell/jujuclient"
 )
 
 // Injectors from wire.go:
@@ -16,7 +16,7 @@ import (
 func InitializeRootApp() (ExecuteAble, error) {
 	logger := common.NewLogger()
 	viper := common.NewViper()
-	jujuClient, err := juju.InitializeJujuClient()
+	jujuClient, err := jujuclient.InitializeJujuClient()
 	if err != nil {
 		return nil, err
 	}

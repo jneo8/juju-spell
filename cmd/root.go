@@ -3,7 +3,7 @@ package cmd
 import (
 	"os"
 
-	"github.com/jneo8/juju-spell/internal/app"
+	"github.com/jneo8/jujuspell/app"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

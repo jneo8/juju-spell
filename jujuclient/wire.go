@@ -1,11 +1,11 @@
 //go:build wireinject
 // +build wireinject
 
-package juju
+package jujuclient
 
 import (
 	"github.com/google/wire"
-	"github.com/jneo8/juju-spell/internal/common"
+	"github.com/jneo8/jujuspell/common"
 	"github.com/juju/juju/jujuclient"
 )
 

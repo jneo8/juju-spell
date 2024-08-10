@@ -5,7 +5,7 @@ package cmd
 
 import (
 	"github.com/google/wire"
-	"github.com/jneo8/juju-spell/internal/common"
+	"github.com/jneo8/jujuspell/common"
 )
 
 func InitializeExecute() func() {

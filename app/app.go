@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jneo8/juju-spell/internal/common"
-	"github.com/jneo8/juju-spell/internal/juju"
-	"github.com/jneo8/juju-spell/internal/tview"
+	"github.com/jneo8/jujuspell/common"
+	"github.com/jneo8/jujuspell/jujuclient"
+	"github.com/jneo8/jujuspell/tview"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -24,7 +24,7 @@ type ExecuteAble interface {
 type App struct {
 	logger     *logrus.Logger
 	config     *viper.Viper
-	jujuClient juju.JujuClient
+	jujuClient jujuclient.JujuClient
 	logFile    *os.File
 }
 
@@ -55,7 +55,7 @@ func (app *App) Close() error {
 	return nil
 }
 
-func NewApp(logger *logrus.Logger, config *viper.Viper, jujuClient juju.JujuClient) ExecuteAble {
+func NewApp(logger *logrus.Logger, config *viper.Viper, jujuClient jujuclient.JujuClient) ExecuteAble {
 	return &App{
 		logger:     logger,
 		config:     config,

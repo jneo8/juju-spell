@@ -4,10 +4,10 @@
 //go:build !wireinject
 // +build !wireinject
 
-package juju
+package jujuclient
 
 import (
-	"github.com/jneo8/juju-spell/internal/common"
+	"github.com/jneo8/jujuspell/common"
 	"github.com/juju/juju/jujuclient"
 )
 
@@ -16,9 +16,9 @@ import (
 func InitializeJujuClient() (JujuClient, error) {
 	clientStore := jujuclient.NewFileClientStore()
 	logger := common.NewLogger()
-	jujuJujuClient, err := NewJujuClient(clientStore, logger)
+	jujuclientJujuClient, err := NewJujuClient(clientStore, logger)
 	if err != nil {
 		return nil, err
 	}
-	return jujuJujuClient, nil
+	return jujuclientJujuClient, nil
 }

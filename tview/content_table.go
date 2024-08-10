@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jneo8/juju-spell/utils"
+	"github.com/jneo8/jujuspell/utils"
 	"github.com/juju/juju/jujuclient"
 	"github.com/juju/names/v5"
 	"github.com/rivo/tview"
@@ -131,6 +131,6 @@ func (s *Service) SwitchToUnitTable(controllerName, modelName string) {
 		s.Error(err)
 		return
 	}
-	data := unitData.GetContentTableData(s.logger)
+	data := unitData.GetContentTableData()
 	s.drawContentTable("", fmt.Sprintf("%s/%s", controllerName, modelName), data)
 }

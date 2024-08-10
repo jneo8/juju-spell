@@ -1,4 +1,4 @@
-module github.com/jneo8/juju-spell
+module github.com/jneo8/jujuspell
 
 go 1.22.1
 

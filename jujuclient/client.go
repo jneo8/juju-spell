@@ -1,4 +1,4 @@
-package juju
+package jujuclient
 
 import (
 	"github.com/juju/errors"
