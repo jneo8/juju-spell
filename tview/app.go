@@ -47,6 +47,8 @@ type Service struct {
 	ContentDataTable *tview.Table
 	jujuClient       jujuclient.JujuClient
 	logger           *logrus.Logger
+	OperationChan    chan Operation
+	CurrentOperation Operation
 }
 
 func GetService(logger *logrus.Logger, jujuclient jujuclient.JujuClient) ViewService {
@@ -117,12 +119,13 @@ func GetService(logger *logrus.Logger, jujuclient jujuclient.JujuClient) ViewSer
 		FooterFlex:       footerFlex,
 		LogTextView:      logTextView,
 		ContentDataTable: dataTable,
+		OperationChan:    make(chan Operation, 100),
 	}
+
 	service.setUpHeaderList()
 	service.setUpPromptTextView()
 	service.setUpBasicInputCapture()
 	service.setUpContentDataTableInputCapture()
-
 	return &service
 }
 
@@ -151,7 +154,18 @@ func (s *Service) setUpBasicInputCapture() {
 }
 
 func (s *Service) setUpHeaderList() {
-	s.HeaderList.AddItem("Controllers", "", 'c', s.SwitchToControllerTable)
+	s.HeaderList.AddItem(
+		"Controllers", "", 'c',
+		s.getRunOpsFunc(
+			Operations{
+				Name: "SwitchToControllerTableOps",
+				Ops: []Operation{
+					s.getContentDataTableProcessingOp(),
+					s.getSwitchToControllerTableOp(),
+				},
+			},
+		),
+	)
 	s.HeaderList.AddItem("Models", "", 'm', nil)
 	s.HeaderList.AddItem("Units", "", 'u', nil)
 	s.HeaderList.AddItem("Integrations", "", 'i', nil)
@@ -173,6 +187,9 @@ func (s *Service) Run(ctx context.Context, wg *sync.WaitGroup, errChan chan<- er
 		} else {
 			errChan <- nil
 		}
+	}()
+	go func() {
+		s.RunOperationHandler(ctx)
 	}()
 	select {
 	case <-ctx.Done():

@@ -22,10 +22,11 @@ type ExecuteAble interface {
 }
 
 type App struct {
-	logger     *logrus.Logger
-	config     *viper.Viper
-	jujuClient jujuclient.JujuClient
-	logFile    *os.File
+	logger       *logrus.Logger
+	config       *viper.Viper
+	jujuClient   jujuclient.JujuClient
+	tviewService tview.Service
+	logFile      *os.File
 }
 
 func (app *App) Setup(cmd *cobra.Command) error {
