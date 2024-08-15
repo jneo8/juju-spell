@@ -1,14 +1,16 @@
-##@ Golang
+LOG_FILE=~/.local/state/jujuspell/jujuspell.log
 
-wire:  ## Run wire for all packages
-	wire ./app
-	wire ./cmd
-	wire ./jujuclient
+##@ Dev
 
-run: wire  ## Run main
+.PHONY: run log
+
+run:  ## Run the app
+
 	go run ./main.go
 
-.PHONY: run wire
+log:  ## Tail to log
+	tail -f ${LOG_FILE}
+
 
 ##@ Help
 
