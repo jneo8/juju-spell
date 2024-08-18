@@ -14,3 +14,20 @@ func InitLogger() {
 		ForceColors:     true,
 	})
 }
+
+func SetLogLevel(level string) {
+	switch level {
+	case "debug":
+		log.SetLevel(log.DebugLevel)
+	case "info":
+		log.SetLevel(log.InfoLevel)
+	case "warn":
+		log.SetLevel(log.WarnLevel)
+	case "error":
+		log.SetLevel(log.ErrorLevel)
+	case "fatal":
+		log.SetLevel(log.FatalLevel)
+	default:
+		log.SetLevel(log.InfoLevel)
+	}
+}

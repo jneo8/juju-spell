@@ -3,27 +3,23 @@ package config
 import (
 	"path/filepath"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/adrg/xdg"
 )
 
-const (
-	AppName          = "jujuspell"
-	JujuSpellLogFile = "jujuspell.log"
-)
-
-var (
-	AppLogFile string
-)
-
-func InitLogLoc() error {
-	var err error
-	appLogDir, err := xdg.StateFile(AppName)
-	if err != nil {
+func InitLogLoc(logFile string) error {
+	logDir := filepath.Dir(logFile)
+	if err := EnsureFullPath(logDir, DefaultDirMod); err != nil {
 		return err
 	}
-	if err := EnsureFullPath(appLogDir, DefaultDirMod); err != nil {
-		return err
-	}
-	AppLogFile = filepath.Join(appLogDir, JujuSpellLogFile)
 	return nil
+}
+
+func GetXDGStateFile() string {
+	dir, err := xdg.StateFile(AppName)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return dir
 }

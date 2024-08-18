@@ -3,11 +3,13 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/jneo8/jujuspell/internal/config"
 	"github.com/jneo8/jujuspell/internal/view"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -15,7 +17,10 @@ const (
 )
 
 var (
-	flags   *config.Flags
+	// flags   *config.Flags
+	cfgFile string
+	cfgName = "config"
+	cfgPath = "."
 	rootCmd = &cobra.Command{
 		Use:  appName,
 		RunE: run,
@@ -23,31 +28,38 @@ var (
 )
 
 func init() {
-	if err := config.InitLogLoc(); err != nil {
-		fmt.Printf("Fail to init logs location %s\n", err)
-	}
 	initFlags()
+	initCfg()
 }
 
 func run(cmd *cobra.Command, args []string) error {
+	cfg := config.NewConfig()
+
+	// Init logger
+	config.InitLogger()
+	config.SetLogLevel(cfg.LogLevel)
+	if err := config.InitLogLoc(cfg.LogFile); err != nil {
+		fmt.Printf("Fail to init logs location %s\n", err)
+	}
 	file, err := os.OpenFile(
-		config.AppLogFile,
+		cfg.LogFile,
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY,
 		config.DefaultFileMod,
 	)
 	if err != nil {
-		return fmt.Errorf("Log file %q init failed: %w", config.AppLogFile, err)
+		return fmt.Errorf("Log file %q init failed: %w", cfg.LogFile, err)
 	}
 	defer func() {
 		if file != nil {
 			_ = file.Close()
 		}
 	}()
-	config.InitLogger()
 	log.SetOutput(file)
-
-	cfg, err := loadConfiguration()
 	app := view.NewApp(cfg)
+
+	if err := app.Init(); err != nil {
+		return err
+	}
 
 	if err := app.Run(); err != nil {
 		return err
@@ -61,17 +73,29 @@ func Execute() {
 	}
 }
 
-func loadConfiguration() (*config.Config, error) {
-	config := config.NewConfig(flags)
-	return config, nil
+func initFlags() {
+	rootCmd.Flags().StringVar(&cfgFile, "config", "", "config file (default is ./config.yaml)")
+
+	// logLevel
+	rootCmd.Flags().String(
+		"logLevel", config.DefaultLogLevel, "Specify a log level (info, warn, debug, trace, error)")
+	viper.BindPFlag("logLevel", rootCmd.Flags().Lookup("logLevel"))
+	// logFile
+	rootCmd.Flags().String(
+		"logFile", filepath.Join(config.GetXDGStateFile(), config.DefaultLogFile), "Specify the log file")
+	viper.BindPFlag("logFile", rootCmd.Flags().Lookup("logFile"))
 }
 
-func initFlags() {
-	flags = config.NewFlags()
-	rootCmd.Flags().StringVarP(
-		flags.LogLevel,
-		"logLevel", "l",
-		config.DefaultLogLevel,
-		"Specify a log level (info, warn, debug, trace, error)",
-	)
+func initCfg() {
+	if cfgFile != "" {
+		viper.SetConfigFile(cfgFile)
+	} else {
+		viper.SetConfigName(cfgName)
+		viper.AddConfigPath(cfgPath)
+	}
+	viper.AutomaticEnv()
+
+	if err := viper.ReadInConfig(); err != nil {
+		log.Warnf("Error reading config file: %s", err)
+	}
 }
